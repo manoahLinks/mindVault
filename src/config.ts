@@ -19,6 +19,7 @@ const envSchema = z.object({
   OPENROUTER_MODEL: z.string().default("anthropic/claude-sonnet-4"),
 
   // Supabase
+  DATABASE_URL: z.string().min(1, "DATABASE_URL (Supabase Postgres connection string) is required"),
   SUPABASE_URL: z.string().url("SUPABASE_URL must be a valid URL"),
   SUPABASE_SERVICE_KEY: z
     .string()
