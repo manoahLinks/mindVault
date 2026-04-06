@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { resources, publishers } from "../db/schema.js";
+import { resources, publishers, verifications } from "../db/schema.js";
 import { uploadFile, deleteFile } from "../storage/supabaseStorage.js";
 import { paidFetch } from "./platformAgent.js";
 import { config } from "../config.js";
@@ -59,7 +59,12 @@ export async function createFileResource(data: {
     .returning();
 
   // Trigger verification in background (don't block the response)
-  const content = [data.title, data.description, `[file: ${data.filename}]`]
+  const content = [
+    `Title: ${data.title}`,
+    data.description ? `Description: ${data.description}` : null,
+    `File: ${data.filename} (${data.mimeType})`,
+    `Price: $${data.price} USDC`,
+  ]
     .filter(Boolean)
     .join("\n");
   triggerVerification(updated.id, content).catch(() => {});
@@ -89,7 +94,12 @@ export async function createLinkResource(data: {
     .returning();
 
   // Trigger verification in background
-  const content = [data.title, data.description, data.externalUrl]
+  const content = [
+    `Title: ${data.title}`,
+    data.description ? `Description: ${data.description}` : null,
+    `URL: ${data.externalUrl}`,
+    `Price: $${data.price} USDC`,
+  ]
     .filter(Boolean)
     .join("\n");
   triggerVerification(resource.id, content).catch(() => {});
@@ -158,4 +168,46 @@ export async function delistResource(id: string, publisherId: string) {
   }
 
   return resource;
+}
+
+export async function getVerificationDetails(resourceId: string) {
+  const resource = await db
+    .select({
+      id: resources.id,
+      title: resources.title,
+      verificationStatus: resources.verificationStatus,
+      verificationId: resources.verificationId,
+      listed: resources.listed,
+      createdAt: resources.createdAt,
+    })
+    .from(resources)
+    .where(eq(resources.id, resourceId))
+    .then((rows) => rows[0] ?? null);
+
+  if (!resource) return null;
+
+  let verification = null;
+  if (resource.verificationId) {
+    verification = await db
+      .select()
+      .from(verifications)
+      .where(eq(verifications.id, resource.verificationId))
+      .then((rows) => rows[0] ?? null);
+  }
+
+  return {
+    resourceId: resource.id,
+    title: resource.title,
+    status: resource.verificationStatus,
+    listed: resource.listed,
+    publishedAt: resource.createdAt,
+    verification: verification
+      ? {
+          isOriginal: verification.isOriginal,
+          confidence: verification.confidence,
+          flags: verification.flags ? JSON.parse(verification.flags) : [],
+          checkedAt: verification.checkedAt,
+        }
+      : null,
+  };
 }

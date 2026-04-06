@@ -3,6 +3,7 @@ import { z } from "zod/v4";
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(4021),
+  BASE_URL: z.string().default("http://localhost:4021"),
 
   // Stellar / x402
   NETWORK: z.string().default("stellar:testnet"),

@@ -8,9 +8,12 @@ import {
   createLinkResource,
   listCatalog,
   getResourceMeta,
+  getVerificationDetails,
   delistResource,
 } from "../services/resourceService.js";
 import { downloadFile } from "../storage/supabaseStorage.js";
+import { db } from "../db/client.js";
+import { payments } from "../db/schema.js";
 import { config } from "../config.js";
 
 const router: RouterType = Router();
@@ -51,7 +54,10 @@ router.post("/resources", apiKeyAuth, upload.single("file"), async (req, res) =>
       mimeType: req.file.mimetype,
     });
 
-    res.status(201).json(resource);
+    res.status(201).json({
+      ...resource,
+      accessUrl: `${config.BASE_URL}/resources/${resource.id}`,
+    });
     return;
   }
 
@@ -71,13 +77,21 @@ router.post("/resources", apiKeyAuth, upload.single("file"), async (req, res) =>
     externalUrl: parsed.data.externalUrl,
   });
 
-  res.status(201).json(resource);
+  res.status(201).json({
+    ...resource,
+    accessUrl: `${config.BASE_URL}/resources/${resource.id}`,
+  });
 });
 
 // GET /resources — browse catalog (public)
 router.get("/resources", async (_req, res) => {
   const catalog = await listCatalog();
-  res.json(catalog);
+  res.json(
+    catalog.map((r) => ({
+      ...r,
+      accessUrl: `${config.BASE_URL}/resources/${r.id}`,
+    }))
+  );
 });
 
 // GET /resources/:id/meta — resource preview (public)
@@ -87,15 +101,61 @@ router.get("/resources/:id/meta", async (req, res) => {
     res.status(404).json({ error: "Resource not found" });
     return;
   }
-  res.json(meta);
+  res.json({
+    ...meta,
+    accessUrl: `${config.BASE_URL}/resources/${meta.id}`,
+  });
+});
+
+// GET /resources/:id/verification — verification status and details (public)
+router.get("/resources/:id/verification", async (req, res) => {
+  const details = await getVerificationDetails(req.params.id as string);
+  if (!details) {
+    res.status(404).json({ error: "Resource not found" });
+    return;
+  }
+  res.json(details);
 });
 
 // GET /resources/:id — access resource (x402 paywalled)
 router.get("/resources/:id", dynamicPaywall, async (req, res) => {
   const resource = (req as any).resource;
 
+  // Record payment
+  let payerAddress = "unknown";
+  try {
+    const paymentHeader = req.headers["x-payment"] as string;
+    if (paymentHeader) {
+      const decoded = JSON.parse(
+        Buffer.from(paymentHeader, "base64").toString()
+      );
+      payerAddress = decoded?.payload?.authorization?.address || decoded?.clientAddress || "unknown";
+    }
+  } catch {
+    // Best effort — don't fail delivery if we can't parse
+  }
+
+  const [payment] = await db
+    .insert(payments)
+    .values({
+      resourceId: resource.id,
+      payerAddress,
+      recipientAddress: resource.walletAddress,
+      amount: resource.price,
+    })
+    .returning();
+
   if (resource.resourceType === "link") {
-    res.json({ url: resource.externalUrl });
+    res.json({
+      url: resource.externalUrl,
+      receipt: {
+        paymentId: payment.id,
+        amount: payment.amount,
+        currency: "USDC",
+        paidTo: payment.recipientAddress,
+        paidAt: payment.paidAt,
+      },
+    });
     return;
   }
 
@@ -104,6 +164,11 @@ router.get("/resources/:id", dynamicPaywall, async (req, res) => {
     res.status(500).json({ error: "Resource file not found" });
     return;
   }
+
+  // Add receipt info in headers for file downloads
+  res.setHeader("X-Payment-Id", payment.id);
+  res.setHeader("X-Payment-Amount", `${payment.amount} USDC`);
+  res.setHeader("X-Payment-Recipient", payment.recipientAddress);
 
   const { buffer, mimeType } = await downloadFile(resource.storagePath);
   res.setHeader("Content-Type", mimeType);

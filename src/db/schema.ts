@@ -66,3 +66,17 @@ export const verifications = pgTable("verifications", {
   flags: text("flags"), // JSON stringified array of issues
   checkedAt: timestamp("checked_at").defaultNow().notNull(),
 });
+
+// Payments — tracks x402 payments for resources
+export const payments = pgTable("payments", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  resourceId: text("resource_id")
+    .notNull()
+    .references(() => resources.id),
+  payerAddress: text("payer_address").notNull(),
+  recipientAddress: text("recipient_address").notNull(),
+  amount: text("amount").notNull(), // USDC amount
+  paidAt: timestamp("paid_at").defaultNow().notNull(),
+});
