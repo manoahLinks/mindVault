@@ -2,6 +2,7 @@ import { Router, type Router as RouterType } from "express";
 import multer from "multer";
 import { z } from "zod/v4";
 import { apiKeyAuth } from "../middleware/apiKeyAuth.js";
+import { dynamicPaywall } from "../middleware/dynamicPaywall.js";
 import {
   createFileResource,
   createLinkResource,
@@ -9,6 +10,7 @@ import {
   getResourceMeta,
   delistResource,
 } from "../services/resourceService.js";
+import { downloadFile } from "../storage/supabaseStorage.js";
 import { config } from "../config.js";
 
 const router: RouterType = Router();
@@ -86,6 +88,30 @@ router.get("/resources/:id/meta", async (req, res) => {
     return;
   }
   res.json(meta);
+});
+
+// GET /resources/:id — access resource (x402 paywalled)
+router.get("/resources/:id", dynamicPaywall, async (req, res) => {
+  const resource = (req as any).resource;
+
+  if (resource.resourceType === "link") {
+    res.json({ url: resource.externalUrl });
+    return;
+  }
+
+  // Stream file from Supabase Storage
+  if (!resource.storagePath) {
+    res.status(500).json({ error: "Resource file not found" });
+    return;
+  }
+
+  const { buffer, mimeType } = await downloadFile(resource.storagePath);
+  res.setHeader("Content-Type", mimeType);
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${resource.storagePath.split("/").pop()}"`
+  );
+  res.send(buffer);
 });
 
 // DELETE /resources/:id — delist a resource (authenticated, owner only)
