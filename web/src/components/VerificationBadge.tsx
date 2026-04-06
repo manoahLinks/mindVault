@@ -1,8 +1,11 @@
+import { Badge } from "./ui/Badge";
+import { CheckCircle2, Clock, XCircle, Slash } from "lucide-react";
+
 const statusConfig = {
-  pending: { label: "Pending", className: "bg-yellow-500/20 text-yellow-400" },
-  verified: { label: "Verified", className: "bg-green-500/20 text-green-400" },
-  rejected: { label: "Rejected", className: "bg-red-500/20 text-red-400" },
-  skipped: { label: "Skipped", className: "bg-gray-500/20 text-gray-400" },
+  pending: { label: "Pending", variant: "amber" as const, icon: Clock },
+  verified: { label: "Verified", variant: "emerald" as const, icon: CheckCircle2 },
+  rejected: { label: "Rejected", variant: "rose" as const, icon: XCircle },
+  skipped: { label: "Skipped", variant: "slate" as const, icon: Slash },
 };
 
 export function VerificationBadge({
@@ -11,12 +14,12 @@ export function VerificationBadge({
   status: keyof typeof statusConfig;
 }) {
   const config = statusConfig[status] ?? statusConfig.pending;
+  const Icon = config.icon;
 
   return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${config.className}`}
-    >
+    <Badge variant={config.variant} className="flex items-center gap-1">
+      <Icon className="w-3 h-3" />
       {config.label}
-    </span>
+    </Badge>
   );
 }
