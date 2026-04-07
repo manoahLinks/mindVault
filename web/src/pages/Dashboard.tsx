@@ -21,6 +21,7 @@ import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
 import { cn } from "../lib/utils";
+import { copyToClipboard } from "../lib/clipboard";
 
 interface RecentPayment {
   payerAddress: string;
@@ -62,6 +63,7 @@ export function Dashboard() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedResource, setExpandedResource] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchAnalytics = () => {
     if (!apiKey) return;
@@ -266,14 +268,18 @@ export function Dashboard() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={(e) => {
+                              onClick={async (e) => {
                                 e.stopPropagation();
-                                navigator.clipboard.writeText(r.accessUrl);
+                                const ok = await copyToClipboard(r.accessUrl);
+                                if (ok) {
+                                  setCopiedId(r.id);
+                                  setTimeout(() => setCopiedId(null), 2000);
+                                }
                               }}
                               className="bg-white/5"
                             >
                               <Copy className="w-4 h-4 mr-2" />
-                              Copy
+                              {copiedId === r.id ? "Copied!" : "Copy"}
                             </Button>
                           </div>
                         </div>

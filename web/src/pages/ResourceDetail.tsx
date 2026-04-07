@@ -18,6 +18,7 @@ import {
 import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
+import { copyToClipboard } from "../lib/clipboard";
 
 interface ResourceMeta {
   id: string;
@@ -46,6 +47,7 @@ export function ResourceDetail() {
   const [resource, setResource] = useState<ResourceMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [accessResult, setAccessResult] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -153,12 +155,16 @@ export function ResourceDetail() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(resource.accessUrl);
+                  onClick={async () => {
+                    const ok = await copyToClipboard(resource.accessUrl);
+                    if (ok) {
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }
                   }}
                   className="h-8 text-xs bg-white/5"
                 >
-                  Copy URL
+                  {copied ? "Copied!" : "Copy URL"}
                 </Button>
               </div>
               <div className="p-3 bg-slate-950/80 rounded-lg border border-white/5 font-mono text-sm text-indigo-300 break-all leading-loose">

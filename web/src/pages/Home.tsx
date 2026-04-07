@@ -6,8 +6,9 @@ import {
   ArrowRight,
   Sparkles,
   Bot,
-  CreditCard,
+  Lock,
   Zap,
+  Vault,
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { cn } from "../lib/utils";
@@ -75,18 +76,19 @@ export function Home() {
             variants={itemVariants}
             className="text-5xl md:text-7xl lg:text-[5.5rem] font-extrabold leading-[1.05] tracking-tight mb-8"
           >
-            <span className="text-white">The Marketplace for</span>
+            <span className="text-white">Your Vault for</span>
             <br />
-            <span className="hero-glow">Agents & Humans</span>
+            <span className="hero-glow">Protected Creations</span>
           </motion.h1>
 
           {/* Subtext */}
           <motion.p
             variants={itemVariants}
-            className="text-lg md:text-xl text-slate-400 max-w-[50ch] mx-auto leading-relaxed mb-12"
+            className="text-lg md:text-xl text-slate-400 max-w-[52ch] mx-auto leading-relaxed mb-12"
           >
-            Publish, verify, and trade digital resources programmatically.
-            Every transaction is settled on Stellar via HTTP 402.
+            Store your digital resources. Protect them with a paywall.
+            Anyone with the URL — human or AI agent — pays USDC on Stellar to access them.
+            One URL. One payment. One delivery.
           </motion.p>
 
           {/* CTAs */}
@@ -99,7 +101,7 @@ export function Home() {
                 size="lg"
                 className="w-full sm:w-auto h-14 text-base font-bold hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] transition-shadow"
               >
-                Explore Catalog
+                Browse the Vault
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
@@ -109,11 +111,46 @@ export function Home() {
                 size="lg"
                 className="w-full sm:w-auto h-14 text-base font-bold glass border-white/10"
               >
-                Start Publishing
+                Store Your Work
               </Button>
             </Link>
           </motion.div>
         </div>
+
+        {/* Glow divider */}
+        <div className="glow-line mb-24" />
+
+        {/* How it works */}
+        <motion.div variants={itemVariants} className="max-w-3xl mx-auto mb-32">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-4">
+              How It Works
+            </h2>
+            <p className="text-slate-400 max-w-lg mx-auto">
+              Three steps. No accounts. No API keys. No subscriptions.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <StepCard
+              number="01"
+              title="Store"
+              description="Upload your creation or link an external resource. Set your price in USDC. Your work goes into the vault."
+              variants={itemVariants}
+            />
+            <StepCard
+              number="02"
+              title="Verify"
+              description="An AI agent reviews your submission for originality. It pays for verification through the same x402 protocol."
+              variants={itemVariants}
+            />
+            <StepCard
+              number="03"
+              title="Earn"
+              description="Share the resource URL. Anyone who requests it gets a 402 with payment instructions. They pay, you earn. Directly to your wallet."
+              variants={itemVariants}
+            />
+          </div>
+        </motion.div>
 
         {/* Glow divider */}
         <div className="glow-line mb-24" />
@@ -123,10 +160,10 @@ export function Home() {
           variants={itemVariants}
           className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-32 max-w-4xl mx-auto"
         >
-          <StatCard value="1k+" label="Resources" delay={0} />
-          <StatCard value="24/7" label="AI Audits" delay={100} />
-          <StatCard value="$0.01" label="Min Price" delay={200} />
-          <StatCard value="<5s" label="Settlement" delay={300} />
+          <StatCard value="402" label="HTTP Paywall" delay={0} />
+          <StatCard value="USDC" label="Stablecoin" delay={100} />
+          <StatCard value="<5s" label="Settlement" delay={200} />
+          <StatCard value="0%" label="Platform Cut" delay={300} />
         </motion.div>
 
         {/* Glow divider */}
@@ -136,23 +173,23 @@ export function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-32">
           <FeatureCard
             variants={itemVariants}
-            icon={Bot}
-            title="AI-Verified"
-            description="Every resource is analyzed by an autonomous agent for originality before listing. Verification is paid via x402."
+            icon={Vault}
+            title="Creator-Owned"
+            description="Your resources live in your vault. Payments go directly to your Stellar wallet. No intermediary holds your funds."
             color="indigo"
           />
           <FeatureCard
             variants={itemVariants}
-            icon={CreditCard}
-            title="Instant Payments"
-            description="Pay with USDC on Stellar. No accounts needed. Connect a wallet, pay, and access — in one flow."
+            icon={Bot}
+            title="Agent-Ready"
+            description="Any AI agent with a funded wallet can access your resources programmatically. No accounts, no OAuth, just HTTP."
             color="cyan"
           />
           <FeatureCard
             variants={itemVariants}
             icon={ShieldCheck}
-            title="Trustless Access"
-            description="HTTP 402 ensures resources are only delivered after on-chain payment confirmation. No trust required."
+            title="AI-Verified"
+            description="A built-in verification agent checks every submission for originality before listing. It charges for its own work via x402."
             color="emerald"
           />
         </div>
@@ -170,24 +207,25 @@ export function Home() {
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[50%] h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
 
             <div className="flex items-center justify-center gap-2 mb-6">
-              <Zap className="w-5 h-5 text-indigo-400" />
+              <Lock className="w-5 h-5 text-indigo-400" />
               <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500 font-mono">
-                Programmable Commerce
+                Built for the Agentic Economy
               </span>
             </div>
             <h2 className="text-3xl md:text-5xl font-extrabold mb-4 tracking-tight">
-              Built for the <span className="hero-glow">Agentic Economy</span>
+              Your Work. <span className="hero-glow">Your Vault.</span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-              The infrastructure for AI agents to trade intelligence, datasets,
-              and compute. Integrate MindVault into any autonomous workflow.
+              Store what you create. Protect it with a payment gate.
+              Let any human or AI agent pay to access it.
+              Every payment settles on Stellar in seconds.
             </p>
             <Link to="/publish">
               <Button
                 size="lg"
                 className="h-14 text-base font-bold hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] transition-shadow"
               >
-                Start Earning
+                Start Storing
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
@@ -195,6 +233,23 @@ export function Home() {
         </motion.div>
       </motion.div>
     </div>
+  );
+}
+
+function StepCard({ number, title, description, variants }: any) {
+  return (
+    <motion.div
+      variants={variants}
+      className="glass-dark rounded-2xl p-8 relative group"
+    >
+      <div className="text-[11px] font-mono font-bold text-indigo-500 tracking-widest mb-4">
+        {number}
+      </div>
+      <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
+        {title}
+      </h3>
+      <p className="text-sm text-slate-400 leading-relaxed">{description}</p>
+    </motion.div>
   );
 }
 
