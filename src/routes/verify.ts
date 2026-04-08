@@ -7,7 +7,7 @@ import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactStellarScheme } from "@x402/stellar/exact/server";
 import type { Network } from "@x402/core/types";
 import type { RoutesConfig } from "@x402/core/server";
-import { eq } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { resources, verifications } from "../db/schema.js";
 import { checkOriginality } from "../services/verificationService.js";
@@ -74,6 +74,73 @@ router.post("/verify-content", verifyPaywall, async (req, res) => {
   }
 
   res.json(result);
+});
+
+// GET /agent/status — public agent stats
+router.get("/agent/status", async (_req, res) => {
+  // All verifications
+  const allVerifications = await db
+    .select({
+      id: verifications.id,
+      resourceId: verifications.resourceId,
+      isOriginal: verifications.isOriginal,
+      confidence: verifications.confidence,
+      flags: verifications.flags,
+      checkedAt: verifications.checkedAt,
+    })
+    .from(verifications)
+    .orderBy(desc(verifications.checkedAt));
+
+  // Get resource titles for recent activity
+  const recentWithTitles = await Promise.all(
+    allVerifications.slice(0, 10).map(async (v) => {
+      const resource = await db
+        .select({ title: resources.title })
+        .from(resources)
+        .where(eq(resources.id, v.resourceId))
+        .then((rows) => rows[0]);
+
+      return {
+        id: v.id,
+        resourceTitle: resource?.title || "Unknown",
+        isOriginal: v.isOriginal,
+        confidence: v.confidence,
+        flags: v.flags ? JSON.parse(v.flags) : [],
+        checkedAt: v.checkedAt,
+      };
+    })
+  );
+
+  const totalVerifications = allVerifications.length;
+  const verified = allVerifications.filter((v) => v.isOriginal).length;
+  const rejected = allVerifications.filter((v) => !v.isOriginal).length;
+  const pricePerVerification = parseFloat(config.VERIFICATION_PRICE);
+  const totalEarned = totalVerifications * pricePerVerification;
+  const avgConfidence =
+    totalVerifications > 0
+      ? allVerifications.reduce((sum, v) => sum + v.confidence, 0) /
+        totalVerifications
+      : 0;
+
+  res.json({
+    agent: {
+      name: "MindVault Verification Agent",
+      walletAddress: config.PAY_TO,
+      network: config.NETWORK,
+      endpoint: `${config.BASE_URL}/verify-content`,
+      pricePerVerification: config.VERIFICATION_PRICE,
+      currency: "USDC",
+      status: "active",
+    },
+    stats: {
+      totalVerifications,
+      verified,
+      rejected,
+      totalEarned: totalEarned.toFixed(4),
+      avgConfidence: avgConfidence.toFixed(2),
+    },
+    recentActivity: recentWithTitles,
+  });
 });
 
 export default router;

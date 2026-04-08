@@ -7,6 +7,7 @@ import {
   Library,
   PlusCircle,
   Trophy,
+  Bot,
   Vault,
 } from "lucide-react";
 import { Button } from "./ui/Button";
@@ -20,6 +21,7 @@ export function Layout() {
     { name: "Catalog", path: "/catalog", icon: Library },
     { name: "Publish", path: "/publish", icon: PlusCircle },
     { name: "Leaderboard", path: "/leaderboard", icon: Trophy },
+    { name: "Agent", path: "/agent", icon: Bot },
     ...(apiKey || isPublisher
       ? [{ name: "Dashboard", path: "/dashboard", icon: LayoutDashboard }]
       : []),

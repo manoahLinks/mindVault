@@ -8,6 +8,7 @@ import { ResourceDetail } from "./pages/ResourceDetail";
 import { Publish } from "./pages/Publish";
 import { Dashboard } from "./pages/Dashboard";
 import { Leaderboard } from "./pages/Leaderboard";
+import { Agent } from "./pages/Agent";
 import { useAuth } from "./hooks/useAuth";
 
 function WalletWithAuth({ children }: { children: React.ReactNode }) {
@@ -36,6 +37,7 @@ export default function App() {
               <Route path="/publish" element={<Publish />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/agent" element={<Agent />} />
             </Route>
           </Routes>
         </BrowserRouter>
