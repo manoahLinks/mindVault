@@ -10,8 +10,10 @@ export function createApp(): Express {
 
   app.use(cors({
     origin: true,
-    exposedHeaders: ["PAYMENT-REQUIRED", "X-PAYMENT-RESPONSE", "X-Payment-Id", "X-Payment-Amount", "X-Payment-Recipient"],
-    allowedHeaders: ["Content-Type", "x-api-key", "X-PAYMENT", "Authorization"],
+    exposedHeaders: "*",
+    allowedHeaders: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
   }));
   app.use(express.json());
 
