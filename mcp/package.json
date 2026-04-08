@@ -1,0 +1,25 @@
+{
+  "name": "mindvault-mcp",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "MCP server for AI agents to browse and buy MindVault resources via x402 on Stellar",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@stellar/stellar-sdk": "^15.0.1",
+    "@x402/core": "^2.9.0",
+    "@x402/fetch": "^2.9.0",
+    "@x402/stellar": "^2.9.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0"
+  }
+}
