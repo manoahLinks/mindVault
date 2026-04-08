@@ -7,21 +7,20 @@ import {
   Library,
   PlusCircle,
   Trophy,
-  LogOut,
   Vault,
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { cn } from "../lib/utils";
 
 export function Layout() {
-  const { apiKey, publisherName, clearAuth } = useAuth();
+  const { apiKey, publisherName, isPublisher } = useAuth();
   const location = useLocation();
 
   const navItems = [
     { name: "Catalog", path: "/catalog", icon: Library },
     { name: "Publish", path: "/publish", icon: PlusCircle },
     { name: "Leaderboard", path: "/leaderboard", icon: Trophy },
-    ...(apiKey
+    ...(apiKey || isPublisher
       ? [{ name: "Dashboard", path: "/dashboard", icon: LayoutDashboard }]
       : []),
   ];
@@ -89,15 +88,6 @@ export function Layout() {
                         {publisherName}
                       </span>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearAuth}
-                      className="h-8 w-8 p-0 rounded-full hover:bg-red-500/10 hover:text-red-400"
-                      title="Logout"
-                    >
-                      <LogOut className="w-4 h-4" />
-                    </Button>
                   </motion.div>
                 )}
               </AnimatePresence>

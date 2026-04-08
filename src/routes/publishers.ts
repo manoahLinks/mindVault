@@ -45,6 +45,29 @@ router.post("/publishers", async (req, res) => {
   }
 });
 
+// GET /publishers/wallet/:address — look up publisher by wallet (public)
+router.get("/publishers/wallet/:address", async (req, res) => {
+  const address = req.params.address as string;
+  const publisher = await db
+    .select({
+      id: publishers.id,
+      name: publishers.name,
+      email: publishers.email,
+      walletAddress: publishers.walletAddress,
+      createdAt: publishers.createdAt,
+    })
+    .from(publishers)
+    .where(eq(publishers.walletAddress, address))
+    .then((rows) => rows[0] ?? null);
+
+  if (!publisher) {
+    res.status(404).json({ error: "No publisher found for this wallet" });
+    return;
+  }
+
+  res.json(publisher);
+});
+
 // GET /publishers/me — own profile (authenticated)
 router.get("/publishers/me", apiKeyAuth, async (req, res) => {
   const pub = req.publisher!;

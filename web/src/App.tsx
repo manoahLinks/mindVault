@@ -8,11 +8,25 @@ import { ResourceDetail } from "./pages/ResourceDetail";
 import { Publish } from "./pages/Publish";
 import { Dashboard } from "./pages/Dashboard";
 import { Leaderboard } from "./pages/Leaderboard";
+import { useAuth } from "./hooks/useAuth";
+
+function WalletWithAuth({ children }: { children: React.ReactNode }) {
+  const { checkWallet, clearAuth } = useAuth();
+
+  return (
+    <WalletProvider
+      onConnect={(address) => checkWallet(address)}
+      onDisconnect={() => clearAuth()}
+    >
+      {children}
+    </WalletProvider>
+  );
+}
 
 export default function App() {
   return (
-    <WalletProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <WalletWithAuth>
         <BrowserRouter>
           <Routes>
             <Route element={<Layout />}>
@@ -25,7 +39,7 @@ export default function App() {
             </Route>
           </Routes>
         </BrowserRouter>
-      </AuthProvider>
-    </WalletProvider>
+      </WalletWithAuth>
+    </AuthProvider>
   );
 }

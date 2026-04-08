@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "../hooks/useAuth";
+import { useWallet } from "../hooks/useWallet";
 import { api } from "../api/client";
 import { PublishForm } from "../components/PublishForm";
 import { VerificationModal } from "../components/VerificationModal";
@@ -16,13 +17,15 @@ import {
 import { Button } from "../components/ui/Button";
 
 export function Publish() {
-  const { apiKey, setAuth } = useAuth();
+  const { apiKey, isPublisher, setAuth } = useAuth();
+  const { address: walletAddress, connected, connect } = useWallet();
   const [registering, setRegistering] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
   const [verifyingResourceId, setVerifyingResourceId] = useState<string | null>(null);
 
   const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!walletAddress) return;
     setRegistering(true);
     setRegError(null);
 
@@ -34,10 +37,10 @@ export function Publish() {
         body: JSON.stringify({
           name: form.get("name"),
           email: form.get("email"),
-          walletAddress: form.get("walletAddress"),
+          walletAddress,
         }),
       });
-      setAuth(data.apiKey, data.name);
+      setAuth(data.apiKey, data.name, data.walletAddress);
     } catch (err: any) {
       setRegError(err.message);
     } finally {
@@ -45,7 +48,7 @@ export function Publish() {
     }
   };
 
-  if (!apiKey) {
+  if (!apiKey && !isPublisher) {
     const inputClass = "w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950/50 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all";
     const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 transition-colors group-focus-within:text-indigo-400";
 
@@ -95,49 +98,62 @@ export function Publish() {
                 Register Now
               </h2>
 
-              <form onSubmit={handleRegister} className="space-y-6">
-                <div className="relative group">
-                  <Rocket className={iconClass} />
-                  <input
-                    name="name"
-                    placeholder="Agent Name or Organization"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-                <div className="relative group">
-                  <Mail className={iconClass} />
-                  <input
-                    name="email"
-                    type="email"
-                    placeholder="Contact Email"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-                <div className="relative group">
-                  <Wallet className={iconClass} />
-                  <input
-                    name="walletAddress"
-                    placeholder="Stellar Address (G...)"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  isLoading={registering}
-                  className="w-full h-12 text-base font-bold shadow-indigo-500/20"
-                >
-                  Create Publisher Account
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-                {regError && (
-                  <p className="text-sm text-red-400 text-center font-medium bg-red-400/10 p-3 rounded-lg border border-red-400/20">
-                    {regError}
+              {!connected ? (
+                <div className="space-y-6">
+                  <p className="text-slate-400 text-sm">
+                    Connect your Stellar wallet first. Your wallet address will be used as your publisher identity.
                   </p>
-                )}
-              </form>
+                  <Button
+                    onClick={connect}
+                    className="w-full h-12 text-base font-bold"
+                  >
+                    <Wallet className="w-4 h-4 mr-2" />
+                    Connect Wallet to Register
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleRegister} className="space-y-6">
+                  <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-3">
+                    <Wallet className="w-4 h-4 text-indigo-400 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-widest font-bold text-indigo-400">Connected Wallet</p>
+                      <p className="text-sm text-white font-mono truncate">{walletAddress}</p>
+                    </div>
+                  </div>
+                  <div className="relative group">
+                    <Rocket className={iconClass} />
+                    <input
+                      name="name"
+                      placeholder="Agent Name or Organization"
+                      required
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="relative group">
+                    <Mail className={iconClass} />
+                    <input
+                      name="email"
+                      type="email"
+                      placeholder="Contact Email"
+                      required
+                      className={inputClass}
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    isLoading={registering}
+                    className="w-full h-12 text-base font-bold shadow-indigo-500/20"
+                  >
+                    Create Publisher Account
+                    <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                  {regError && (
+                    <p className="text-sm text-red-400 text-center font-medium bg-red-400/10 p-3 rounded-lg border border-red-400/20">
+                      {regError}
+                    </p>
+                  )}
+                </form>
+              )}
             </div>
           </div>
         </div>

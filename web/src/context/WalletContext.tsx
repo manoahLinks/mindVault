@@ -35,7 +35,13 @@ export const WalletContext = createContext<WalletState>({
   disconnect: () => {},
 });
 
-export function WalletProvider({ children }: { children: ReactNode }) {
+interface WalletProviderProps {
+  children: ReactNode;
+  onConnect?: (address: string) => void;
+  onDisconnect?: () => void;
+}
+
+export function WalletProvider({ children, onConnect, onDisconnect }: WalletProviderProps) {
   const initialized = useRef(false);
   const [address, setAddress] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
@@ -68,17 +74,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setAddress(addr);
       const signer = createWalletKitSigner(addr);
       setupPaidFetch(signer);
+      onConnect?.(addr);
     } catch {
       // User cancelled or no wallet
     } finally {
       setConnecting(false);
     }
-  }, [setupPaidFetch]);
+  }, [setupPaidFetch, onConnect]);
 
   const disconnect = useCallback(() => {
     setAddress(null);
     setPaidFetch(null);
-  }, []);
+    onDisconnect?.();
+  }, [onDisconnect]);
 
   return (
     <WalletContext.Provider
