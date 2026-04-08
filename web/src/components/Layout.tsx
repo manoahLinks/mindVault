@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { WalletButton } from "./WalletButton";
 import { useAuth } from "../hooks/useAuth";
+import { useWallet } from "../hooks/useWallet";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -10,11 +11,11 @@ import {
   Bot,
   Vault,
 } from "lucide-react";
-import { Button } from "./ui/Button";
 import { cn } from "../lib/utils";
 
 export function Layout() {
   const { apiKey, publisherName, isPublisher } = useAuth();
+  const { connected } = useWallet();
   const location = useLocation();
 
   const navItems = [
@@ -29,53 +30,25 @@ export function Layout() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
+      {/* Top navbar — logo + wallet only */}
       <header className="sticky top-0 z-50 w-full glass-dark border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-10">
-              <Link
-                to="/"
-                className="flex items-center gap-2 group transition-transform hover:scale-105 active:scale-95"
-              >
-                <div className="bg-indigo-600 p-1.5 rounded-lg shadow-lg shadow-indigo-500/20 group-hover:bg-indigo-500 transition-colors">
-                  <Vault className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-extrabold font-display tracking-tight text-white group-hover:text-indigo-400 transition-colors">
-                  MindVault
-                </span>
-              </Link>
-
-              <nav className="hidden md:flex items-center gap-1">
-                {navItems.map((item) => {
-                  const isActive = location.pathname === item.path;
-                  return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className={cn(
-                        "relative px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg flex items-center gap-2",
-                        isActive
-                          ? "text-white bg-white/5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
-                          : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-                      )}
-                    >
-                      <item.icon className={cn("w-4 h-4", isActive && "text-indigo-400")} />
-                      {item.name}
-                      {isActive && (
-                        <motion.div
-                          layoutId="nav-glow"
-                          className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent"
-                        />
-                      )}
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
+            <Link
+              to="/"
+              className="flex items-center gap-2 group transition-transform hover:scale-105 active:scale-95"
+            >
+              <div className="bg-indigo-600 p-1.5 rounded-lg shadow-lg shadow-indigo-500/20 group-hover:bg-indigo-500 transition-colors">
+                <Vault className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-extrabold font-display tracking-tight text-white group-hover:text-indigo-400 transition-colors">
+                MindVault
+              </span>
+            </Link>
 
             <div className="flex items-center gap-5">
               <AnimatePresence mode="wait">
-                {publisherName && (
+                {publisherName && connected && (
                   <motion.div
                     initial={{ opacity: 0, x: 10 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -98,6 +71,48 @@ export function Layout() {
           </div>
         </div>
       </header>
+
+      {/* Sub-navigation — only visible when wallet is connected */}
+      <AnimatePresence>
+        {connected && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden border-b border-white/5 bg-slate-950/80 backdrop-blur-md"
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <nav className="flex items-center gap-1 py-2 overflow-x-auto">
+                {navItems.map((item) => {
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={cn(
+                        "relative px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg flex items-center gap-2 whitespace-nowrap",
+                        isActive
+                          ? "text-white bg-white/5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+                          : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                      )}
+                    >
+                      <item.icon className={cn("w-4 h-4", isActive && "text-indigo-400")} />
+                      {item.name}
+                      {isActive && (
+                        <motion.div
+                          layoutId="nav-glow"
+                          className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent"
+                        />
+                      )}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
         <Outlet />
