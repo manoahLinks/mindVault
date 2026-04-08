@@ -262,6 +262,12 @@ export function VerificationModal({
             ) : null}
           </AnimatePresence>
 
+          {verifyError && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 mb-4">
+              <p className="text-sm text-red-400">{verifyError}</p>
+            </div>
+          )}
+
           <Button
             onClick={onClose}
             variant={isComplete ? "primary" : "outline"}
