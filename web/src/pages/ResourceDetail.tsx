@@ -19,6 +19,7 @@ import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
 import { copyToClipboard } from "../lib/clipboard";
+import { getAccessUrl } from "../lib/urls";
 
 interface ResourceMeta {
   id: string;
@@ -30,7 +31,7 @@ interface ResourceMeta {
   verificationStatus: "pending" | "verified" | "rejected" | "skipped";
   publisherName: string;
   publisherWallet: string;
-  accessUrl: string;
+  accessUrl?: string;
   createdAt: string;
 }
 
@@ -156,7 +157,7 @@ export function ResourceDetail() {
                   variant="ghost"
                   size="sm"
                   onClick={async () => {
-                    const ok = await copyToClipboard(resource.accessUrl);
+                    const ok = await copyToClipboard(getAccessUrl(resource.id));
                     if (ok) {
                       setCopied(true);
                       setTimeout(() => setCopied(false), 2000);
@@ -168,7 +169,7 @@ export function ResourceDetail() {
                 </Button>
               </div>
               <div className="p-3 bg-slate-950/80 rounded-lg border border-white/5 font-mono text-sm text-indigo-300 break-all leading-loose">
-                {resource.accessUrl}
+                {getAccessUrl(resource.id)}
               </div>
               <p className="text-xs text-slate-500 italic">
                 Secure link using x402 protocol. All programmatic access is gated.

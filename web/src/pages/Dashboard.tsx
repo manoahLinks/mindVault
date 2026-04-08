@@ -22,6 +22,7 @@ import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
 import { cn } from "../lib/utils";
 import { copyToClipboard } from "../lib/clipboard";
+import { getAccessUrl } from "../lib/urls";
 
 interface RecentPayment {
   payerAddress: string;
@@ -35,7 +36,7 @@ interface ResourceStat {
   price: string;
   verificationStatus: "pending" | "verified" | "rejected" | "skipped";
   listed: boolean;
-  accessUrl: string;
+  accessUrl?: string;
   createdAt: string;
   totalSales: number;
   totalEarned: string;
@@ -263,14 +264,14 @@ export function Dashboard() {
                           </p>
                           <div className="flex items-center gap-2">
                             <code className="flex-1 text-sm text-indigo-300 font-mono break-all bg-black/40 px-3 py-2 rounded-lg">
-                              {r.accessUrl}
+                              {getAccessUrl(r.id)}
                             </code>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={async (e) => {
                                 e.stopPropagation();
-                                const ok = await copyToClipboard(r.accessUrl);
+                                const ok = await copyToClipboard(getAccessUrl(r.id));
                                 if (ok) {
                                   setCopiedId(r.id);
                                   setTimeout(() => setCopiedId(null), 2000);
