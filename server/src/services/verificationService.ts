@@ -1,7 +1,9 @@
 import OpenAI from "openai";
 import { config } from "../config.js";
 
-const client = new OpenAI({
+const OpenAIClient = (OpenAI as any).default || OpenAI;
+
+const client = new OpenAIClient({
   baseURL: "https://openrouter.ai/api/v1",
   apiKey: config.OPENROUTER_API_KEY,
 });
