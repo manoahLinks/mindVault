@@ -8,7 +8,11 @@ import verifyRouter from "./routes/verify.js";
 export function createApp(): Express {
   const app = express();
 
-  app.use(cors());
+  app.use(cors({
+    origin: true,
+    exposedHeaders: ["PAYMENT-REQUIRED", "X-PAYMENT-RESPONSE", "X-Payment-Id", "X-Payment-Amount", "X-Payment-Recipient"],
+    allowedHeaders: ["Content-Type", "x-api-key", "X-PAYMENT", "Authorization"],
+  }));
   app.use(express.json());
 
   // Routes
