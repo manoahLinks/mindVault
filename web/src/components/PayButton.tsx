@@ -19,7 +19,7 @@ export function PayButton({ resourceId, price, onSuccess }: PayButtonProps) {
     setError(null);
 
     try {
-      const apiBase = import.meta.env.VITE_API_URL || "/api";
+      const apiBase = import.meta.env.VITE_API_URL || "http://localhost:4021";
       const res = await paidFetch(`${apiBase}/resources/${resourceId}`);
 
       if (!res.ok) {

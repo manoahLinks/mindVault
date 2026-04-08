@@ -58,7 +58,7 @@ export function VerificationModal({
     if (verifyTriggered.current || !paidFetch) return;
     verifyTriggered.current = true;
 
-    const apiBase = import.meta.env.VITE_API_URL || "/api";
+    const apiBase = import.meta.env.VITE_API_URL || "http://localhost:4021";
 
     paidFetch(`${apiBase}/verify-content`, {
       method: "POST",
