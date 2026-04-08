@@ -19,7 +19,8 @@ export function PayButton({ resourceId, price, onSuccess }: PayButtonProps) {
     setError(null);
 
     try {
-      const res = await paidFetch(`/api/resources/${resourceId}`);
+      const apiBase = import.meta.env.VITE_API_URL || "/api";
+      const res = await paidFetch(`${apiBase}/resources/${resourceId}`);
 
       if (!res.ok) {
         throw new Error(`Payment failed: ${res.status}`);

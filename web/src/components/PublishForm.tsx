@@ -31,7 +31,8 @@ export function PublishForm({ onPublished }: { onPublished: (resourceId: string)
     try {
       let data: any;
       if (mode === "file") {
-        const res = await fetch("/api/resources", {
+        const apiBase = import.meta.env.VITE_API_URL || "/api";
+        const res = await fetch(`${apiBase}/resources`, {
           method: "POST",
           headers: { "x-api-key": apiKey },
           body: formData,
