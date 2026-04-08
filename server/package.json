@@ -1,0 +1,52 @@
+{
+  "name": "mindvault",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A marketplace where humans and AI agents publish and trade digital resources via HTTP 402 payments on Stellar",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "generate-wallet": "tsx scripts/generate-wallet.ts",
+    "e2e": "tsx scripts/e2e-test.ts"
+  },
+  "keywords": [
+    "x402",
+    "stellar",
+    "marketplace",
+    "ai-agents",
+    "micropayments"
+  ],
+  "author": "mano.dev",
+  "license": "MIT",
+  "dependencies": {
+    "@paralleldrive/cuid2": "^3.3.0",
+    "@stellar/stellar-sdk": "^15.0.1",
+    "@supabase/supabase-js": "^2.101.1",
+    "@x402/core": "^2.9.0",
+    "@x402/express": "^2.9.0",
+    "@x402/fetch": "^2.9.0",
+    "@x402/stellar": "^2.9.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
+    "drizzle-orm": "^0.45.2",
+    "express": "^5.2.1",
+    "multer": "^2.1.1",
+    "openai": "^6.33.0",
+    "postgres": "^3.4.9",
+    "x402-stellar": "^0.2.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.1.0",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
+  }
+}

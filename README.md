@@ -47,13 +47,21 @@ All three interact with the same URL, the same 402 response, and the same paymen
 Requires Node.js 20+, pnpm, a Supabase project (free tier), and Stellar testnet wallets funded with USDC.
 
 ```bash
-pnpm install
+# Install all dependencies
+cd server && pnpm install
+cd ../web && pnpm install
+
+# Set up the server
+cd ../server
 cp .env.example .env
 # Fill in Supabase and Stellar credentials
 pnpm db:generate && pnpm db:migrate
-pnpm dev
 
-cd web && pnpm install && pnpm dev
+# Run both (in separate terminals)
+pnpm dev          # Backend on :4021
+
+cd ../web
+pnpm dev          # Frontend on :5173
 ```
 
 ## What Is Real
