@@ -22,6 +22,7 @@ export function Publish() {
   const [registering, setRegistering] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
   const [verifyingResourceId, setVerifyingResourceId] = useState<string | null>(null);
+  const [verifyingContent, setVerifyingContent] = useState<string | null>(null);
 
   const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -176,15 +177,22 @@ export function Publish() {
       <div className="p-1 bg-white/5 rounded-3xl border border-white/5">
         <div className="bg-slate-900/40 backdrop-blur-xl p-8 rounded-[22px]">
           <PublishForm
-            onPublished={(resourceId) => setVerifyingResourceId(resourceId)}
+            onPublished={(resourceId, content) => {
+              setVerifyingResourceId(resourceId);
+              setVerifyingContent(content);
+            }}
           />
         </div>
       </div>
 
-      {verifyingResourceId && (
+      {verifyingResourceId && verifyingContent && (
         <VerificationModal
           resourceId={verifyingResourceId}
-          onClose={() => setVerifyingResourceId(null)}
+          content={verifyingContent}
+          onClose={() => {
+            setVerifyingResourceId(null);
+            setVerifyingContent(null);
+          }}
         />
       )}
     </div>

@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
-export function PublishForm({ onPublished }: { onPublished: (resourceId: string) => void }) {
+export function PublishForm({ onPublished }: { onPublished: (resourceId: string, content: string) => void }) {
   const { apiKey } = useAuth();
   const [mode, setMode] = useState<"file" | "link">("link");
   const [loading, setLoading] = useState(false);
@@ -51,8 +51,15 @@ export function PublishForm({ onPublished }: { onPublished: (resourceId: string)
           }),
         });
       }
+      // Build content string for verification
+      const title = formData.get("title") as string;
+      const description = formData.get("description") as string;
+      const verifyContent = mode === "file"
+        ? [`Title: ${title}`, description ? `Description: ${description}` : null, `File: ${(formData.get("file") as File)?.name || "unknown"}`, `Price: $${formData.get("price")} USDC`].filter(Boolean).join("\n")
+        : [`Title: ${title}`, description ? `Description: ${description}` : null, `URL: ${formData.get("externalUrl")}`, `Price: $${formData.get("price")} USDC`].filter(Boolean).join("\n");
+
       form.reset();
-      onPublished(data.id);
+      onPublished(data.id, verifyContent);
     } catch (err: any) {
       setError(err.message);
     } finally {

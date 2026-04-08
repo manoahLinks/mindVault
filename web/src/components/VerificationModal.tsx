@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { api } from "../api/client";
+import { useWallet } from "../hooks/useWallet";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   CheckCircle2, 
@@ -36,17 +37,39 @@ const STEPS = [
 
 export function VerificationModal({
   resourceId,
+  content,
   onClose,
 }: {
   resourceId: string;
+  content: string;
   onClose: () => void;
 }) {
+  const { paidFetch } = useWallet();
   const [details, setDetails] = useState<VerificationDetails | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
   const startTime = useRef(Date.now());
   const pollRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
+  const verifyTriggered = useRef(false);
 
+  // Trigger verification payment from publisher's wallet
+  useEffect(() => {
+    if (verifyTriggered.current || !paidFetch) return;
+    verifyTriggered.current = true;
+
+    const apiBase = import.meta.env.VITE_API_URL || "/api";
+
+    paidFetch(`${apiBase}/verify-content`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, resourceId }),
+    }).catch((err: any) => {
+      setVerifyError(err.message || "Verification payment failed");
+    });
+  }, [paidFetch, resourceId, content]);
+
+  // Poll for verification status
   useEffect(() => {
     const poll = () => {
       api<VerificationDetails>(`/resources/${resourceId}/verification`)

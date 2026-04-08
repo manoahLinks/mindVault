@@ -2,25 +2,6 @@ import { eq, and } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { resources, publishers, verifications } from "../db/schema.js";
 import { uploadFile, deleteFile } from "../storage/supabaseStorage.js";
-import { paidFetch } from "./platformAgent.js";
-import { config } from "../config.js";
-
-async function triggerVerification(resourceId: string, content: string) {
-  try {
-    const baseUrl = `http://localhost:${config.PORT}`;
-    const response = await paidFetch(`${baseUrl}/verify-content`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content, resourceId }),
-    });
-
-    if (!response.ok) {
-      console.error(`Verification failed: ${response.status}`);
-    }
-  } catch (err) {
-    console.error("Verification error:", err);
-  }
-}
 
 export async function createFileResource(data: {
   publisherId: string;
@@ -58,17 +39,6 @@ export async function createFileResource(data: {
     .where(eq(resources.id, resource.id))
     .returning();
 
-  // Trigger verification in background (don't block the response)
-  const content = [
-    `Title: ${data.title}`,
-    data.description ? `Description: ${data.description}` : null,
-    `File: ${data.filename} (${data.mimeType})`,
-    `Price: $${data.price} USDC`,
-  ]
-    .filter(Boolean)
-    .join("\n");
-  triggerVerification(updated.id, content).catch(() => {});
-
   return updated;
 }
 
@@ -92,17 +62,6 @@ export async function createLinkResource(data: {
       externalUrl: data.externalUrl,
     })
     .returning();
-
-  // Trigger verification in background
-  const content = [
-    `Title: ${data.title}`,
-    data.description ? `Description: ${data.description}` : null,
-    `URL: ${data.externalUrl}`,
-    `Price: $${data.price} USDC`,
-  ]
-    .filter(Boolean)
-    .join("\n");
-  triggerVerification(resource.id, content).catch(() => {});
 
   return resource;
 }

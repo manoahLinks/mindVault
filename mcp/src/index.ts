@@ -24,6 +24,8 @@ interface WalletConfig {
   publicKey: string;
   secretKey: string;
   createdAt: string;
+  apiKey?: string;
+  publisherName?: string;
 }
 
 function loadWallet(): WalletConfig | null {
@@ -319,6 +321,155 @@ server.tool(
       return {
         content: [{ type: "text" as const, text: `Error: ${err.message}` }],
       };
+    }
+  }
+);
+
+// Tool: Register as publisher
+server.tool(
+  "mindvault_register",
+  "Register as a publisher on MindVault using the agent's wallet address. Returns an API key for publishing resources.",
+  {
+    name: z.string().describe("Publisher name"),
+    email: z.string().describe("Contact email"),
+  },
+  async ({ name, email }) => {
+    const wallet = loadWallet();
+    if (!wallet) {
+      return {
+        content: [{ type: "text" as const, text: "No wallet configured. Run mindvault_setup_wallet first." }],
+      };
+    }
+
+    try {
+      const res = await fetch(`${MINDVAULT_API}/publishers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          walletAddress: wallet.publicKey,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        return { content: [{ type: "text" as const, text: `Registration failed: ${data.error}` }] };
+      }
+
+      // Save API key to wallet file
+      const walletConfig = loadWallet()!;
+      walletConfig.apiKey = data.apiKey;
+      walletConfig.publisherName = data.name;
+      saveWallet(walletConfig);
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: [
+              "Registered as publisher.",
+              "",
+              `Name: ${data.name}`,
+              `Wallet: ${data.walletAddress}`,
+              `API Key: ${data.apiKey}`,
+              "",
+              "API key saved. You can now use mindvault_publish to publish resources.",
+            ].join("\n"),
+          },
+        ],
+      };
+    } catch (err: any) {
+      return { content: [{ type: "text" as const, text: `Error: ${err.message}` }] };
+    }
+  }
+);
+
+// Tool: Publish resource + pay for verification
+server.tool(
+  "mindvault_publish",
+  "Publish a resource to MindVault and pay for AI verification via x402. The agent's wallet pays the verification fee in USDC.",
+  {
+    title: z.string().describe("Resource title"),
+    description: z.string().optional().describe("Resource description"),
+    price: z.string().describe("Price in USDC (e.g. '0.50')"),
+    externalUrl: z.string().describe("URL to the resource"),
+  },
+  async ({ title, description, price, externalUrl }) => {
+    const wallet = loadWallet();
+    if (!wallet) {
+      return {
+        content: [{ type: "text" as const, text: "No wallet configured. Run mindvault_setup_wallet first." }],
+      };
+    }
+
+    const apiKey = wallet.apiKey;
+    if (!apiKey) {
+      return {
+        content: [{ type: "text" as const, text: "Not registered as publisher. Run mindvault_register first." }],
+      };
+    }
+
+    try {
+      // Step 1: Publish the resource
+      const pubRes = await fetch(`${MINDVAULT_API}/resources`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+        },
+        body: JSON.stringify({ title, description, price, externalUrl }),
+      });
+
+      const resource = await pubRes.json();
+      if (!pubRes.ok) {
+        return { content: [{ type: "text" as const, text: `Publish failed: ${resource.error}` }] };
+      }
+
+      // Step 2: Pay for verification via x402
+      const paidFetch = createPaidFetch(wallet.secretKey);
+      const content = [
+        `Title: ${title}`,
+        description ? `Description: ${description}` : null,
+        `URL: ${externalUrl}`,
+        `Price: $${price} USDC`,
+      ].filter(Boolean).join("\n");
+
+      const verifyRes = await paidFetch(`${MINDVAULT_API}/verify-content`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, resourceId: resource.id }),
+      });
+
+      let verifyResult = null;
+      if (verifyRes.ok) {
+        verifyResult = await verifyRes.json();
+      }
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: [
+              "Resource published and verification paid.",
+              "",
+              `Resource ID: ${resource.id}`,
+              `Title: ${title}`,
+              `Price: $${price} USDC`,
+              `Access URL: ${MINDVAULT_API}/resources/${resource.id}`,
+              "",
+              verifyResult
+                ? `Verification: ${verifyResult.isOriginal ? "PASSED" : "REJECTED"} (${Math.round(verifyResult.confidence * 100)}% confidence)`
+                : "Verification: Payment submitted, awaiting result.",
+              verifyResult?.flags?.length
+                ? `Flags: ${verifyResult.flags.join(", ")}`
+                : "",
+            ].filter(Boolean).join("\n"),
+          },
+        ],
+      };
+    } catch (err: any) {
+      return { content: [{ type: "text" as const, text: `Error: ${err.message}` }] };
     }
   }
 );
