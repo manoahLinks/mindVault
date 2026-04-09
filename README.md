@@ -1,76 +1,178 @@
 # MindVault
 
-A payment-protected vault for digital resources. Creators store their work — datasets, prompts, research, code, APIs, any digital creation — and MindVault wraps it with an HTTP 402 paywall powered by Stellar and x402. Anyone with the resource URL, whether a human or an AI agent, can pay USDC to access it.
+MindVault is a payment-protected vault for digital resources built on Stellar. Creators store their work and MindVault wraps it with an HTTP 402 paywall using the x402 protocol. Anyone with the resource URL — whether a human in a browser or an AI agent running autonomously — pays USDC on Stellar to access it.
+
+Live app: https://mind-vault-kappa.vercel.app
+Backend API: https://mindvault-hyr3.onrender.com
 
 ## The Problem
 
-Creators produce valuable digital work every day. Datasets, research papers, automation workflows, specialized prompts, trained models. But there is no simple way to protect and monetize these resources for both human and machine consumers.
+Creators produce valuable digital work every day — datasets, research, code, prompts, trained models. But there is no simple way to protect and monetize this work for both human and machine consumers.
 
-Traditional paywalls require accounts, logins, and subscriptions. That works for humans. It does not work for AI agents. An agent cannot sign up, manage a subscription, or navigate an auth flow. It can make an HTTP request and it can sign a payment. That should be enough.
+Traditional paywalls require accounts, logins, and subscriptions. That works fine for humans. It does not work for AI agents. An agent cannot sign up for an account, manage a subscription, or navigate an auth flow. But it can make an HTTP request, and it can sign a payment on a blockchain. That should be enough.
 
 ## What MindVault Does
 
 MindVault gives creators a vault for their digital resources. Each stored resource gets a unique URL with a programmable paywall. When anything — a browser, a script, an AI agent — requests that URL:
 
-1. The vault returns HTTP 402 with the price and the creator's Stellar wallet address.
-2. The requester signs a USDC payment on Stellar.
-3. The requester retries the request with proof of payment.
-4. The vault delivers the resource. The USDC goes directly to the creator. No middleman holds funds.
+1. The vault returns HTTP 402 (Payment Required) with the price and the creator's Stellar wallet address
+2. The requester signs a USDC payment on Stellar
+3. The requester retries the request with proof of payment
+4. The vault delivers the resource and the USDC goes directly to the creator
 
-That is the entire access model. One URL. One payment. One delivery.
+One URL. One payment. One delivery. No accounts. No middleman.
+
+## How We Use Stellar
+
+MindVault is built entirely on Stellar's infrastructure. Every payment that flows through the platform is a real USDC transaction on the Stellar network.
+
+**x402 Protocol** — The HTTP 402 status code was reserved for "Payment Required" but never standardized. The x402 protocol gives it a purpose. When a client requests a paywalled resource, the server returns a 402 with a `PAYMENT-REQUIRED` header containing the price, destination wallet, network, and payment scheme. The client signs a Soroban authorization entry for a USDC transfer, attaches it to the retry request, and the x402 facilitator verifies and settles the transaction on-chain. We use the `@x402/express` middleware on the server and `@x402/stellar` for signing on the client.
+
+**USDC on Soroban** — All payments use the Stellar testnet USDC token contract (`CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA`). This is a Stellar Asset Contract (SAC) that wraps the classic USDC issuer. Balances are interchangeable between classic and Soroban operations.
+
+**Wallet Connection** — The web app uses `@creit.tech/stellar-wallets-kit` to connect browser wallets (Freighter, xBull, Albedo, and others). When a user pays for a resource, the wallet kit bridges to x402's `ClientStellarSigner` interface to sign Soroban auth entries.
+
+**Sponsored Agent Accounts** — The MCP server uses the [stellar-sponsored-agent-account](https://github.com/oceans404/stellar-sponsored-agent-account) service to create wallets for AI agents. The service sponsors the ~1.5 XLM reserve needed to create an account and establish a USDC trustline, so an agent can get a wallet with zero upfront cost.
+
+**Two Platform Wallets** — MindVault operates two separate Stellar wallets. The platform wallet (`GB6LGS25...`) receives verification fees. The agent wallet (`GDNNUI6N...`) pays for verification when publishing via the MCP server. Both are visible on Stellar Explorer with real USDC transactions flowing between them.
+
+**Facilitator** — Payment verification and settlement is handled by the x402 facilitator at `x402.org/facilitator` (Coinbase, testnet, fees sponsored). The facilitator calls `/verify` to validate the signed auth entry and `/settle` to submit the transaction on-chain.
 
 ## Content Verification
 
-Before a resource goes live in the vault, a built-in AI agent reviews it for originality and quality. This agent is itself an x402-paid service — it charges per verification request through the same protocol that consumers use to access resources.
+Before a resource goes live in the vault, a built-in AI agent reviews it for originality and quality. This agent is itself an x402-paid service. It has its own endpoint (`POST /verify-content`), its own price ($0.10 USDC), and it receives payments to the platform's Stellar wallet.
 
-The platform does not just protect content. It participates in the same payment economy as its users.
+When a creator publishes a resource from the web app, their browser wallet pays the verification fee via x402. When an AI agent publishes through the MCP server, the agent's wallet pays the same fee through the same protocol.
+
+The verification agent has processed 7 verifications, approved 2, rejected 5, and earned $0.70 USDC. It correctly rejects test submissions and placeholder content while approving genuine resource listings. Its full activity feed is visible on the Agent page in the app.
 
 ## Who Uses MindVault
 
-**Creators** store their resources, set a price, and receive USDC directly to their Stellar wallet every time someone accesses their work.
+**Creators** store their resources, set a price in USDC, and receive payments directly to their Stellar wallet every time someone accesses their work. No platform cut.
 
-**AI Agents** discover resource URLs (shared, indexed, or embedded in workflows) and pay to access them programmatically. No API keys. No OAuth. Just an HTTP request and a Stellar payment.
+**AI Agents** can browse the catalog, pay for resources, and even publish their own — all programmatically through the API or MCP server. No accounts, no OAuth. An HTTP request and a Stellar payment is all they need.
 
-**Humans** connect a browser wallet, pay, and download or view the resource.
+**Humans** connect a browser wallet (Freighter, xBull, etc.), browse the vault, and pay to access resources with one click.
 
-All three interact with the same URL, the same 402 response, and the same payment flow.
+All three interact with the same URLs, the same 402 responses, and the same x402 payment flow.
 
-## Links
+## MCP Server
 
-- x402 protocol: [x402.org](https://www.x402.org/)
-- x402 on Stellar: [developers.stellar.org/docs/build/agentic-payments/x402](https://developers.stellar.org/docs/build/agentic-payments/x402)
-- Stellar testnet USDC contract: `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA`
-- Circle testnet faucet: [faucet.circle.com](https://faucet.circle.com)
+MindVault includes an MCP server that lets any AI system (Claude Code, Codex, or any MCP-enabled client) interact with the vault through natural conversation.
 
-## Running It
+Available tools:
 
-Requires Node.js 20+, pnpm, a Supabase project (free tier), and Stellar testnet wallets funded with USDC.
+| Tool | Description |
+|------|-------------|
+| `mindvault_setup_wallet` | Create a Stellar wallet using the sponsored account protocol |
+| `mindvault_wallet_info` | Check wallet address and USDC balance |
+| `mindvault_browse` | List available resources in the vault |
+| `mindvault_preview` | Get details and price for a resource |
+| `mindvault_register` | Register as a publisher using the agent's wallet |
+| `mindvault_publish` | Publish a resource and pay for verification via x402 |
+| `mindvault_buy` | Pay USDC and access a resource via x402 |
+| `mindvault_agent_status` | Check the verification agent's earnings and activity |
+
+### Install
 
 ```bash
-# Install all dependencies
+cd mcp && pnpm install && pnpm build
+
+# Claude Code
+claude mcp add mindvault node /path/to/mindVault/mcp/dist/index.js
+
+# Codex
+codex mcp add mindvault -- node /path/to/mindVault/mcp/dist/index.js
+```
+
+An agent can set up a wallet, register as a publisher, publish a resource (paying for verification), and then another agent can discover and buy that resource. The full agent-to-agent economy runs through x402.
+
+## Project Structure
+
+```
+mindVault/
+  server/     Express backend, x402 middleware, Supabase, verification agent
+  web/        React frontend, Stellar wallet connection, Tailwind
+  mcp/        MCP server for AI agent access
+```
+
+## Running Locally
+
+Requires Node.js 20+, pnpm, a Supabase project (free tier), and Stellar testnet wallets funded with USDC from [faucet.circle.com](https://faucet.circle.com).
+
+```bash
+# Install
 cd server && pnpm install
 cd ../web && pnpm install
+cd ../mcp && pnpm install
 
-# Set up the server
+# Configure
 cd ../server
 cp .env.example .env
-# Fill in Supabase and Stellar credentials
+# Fill in Supabase, Stellar, and OpenRouter credentials
 pnpm db:generate && pnpm db:migrate
 
-# Run both (in separate terminals)
+# Generate wallets (run twice for separate platform + agent wallets)
+pnpm generate-wallet
+
+# Run
 pnpm dev          # Backend on :4021
 
 cd ../web
 pnpm dev          # Frontend on :5173
 ```
 
+## Testing the 402 Flow
+
+```bash
+# Any HTTP client gets a 402 with payment instructions
+curl -i https://mindvault-hyr3.onrender.com/resources/swcn98besxpp6t1u8e77fqz3
+# HTTP/1.1 402 Payment Required
+# PAYMENT-REQUIRED: eyJ4NDAy...  (base64 encoded payment details)
+```
+
+The `PAYMENT-REQUIRED` header contains the price, destination wallet, network, asset contract, and payment scheme. Any x402-compatible client handles it automatically.
+
 ## What Is Real
 
-Payments are real USDC transactions on Stellar testnet. The AI verification agent makes real LLM calls and real x402 payments on every publish. The frontend connects real Stellar wallets (Freighter) and signs real Soroban auth entries. Creator earnings are tracked from actual on-chain settlements.
+- Payments are real USDC transactions on Stellar testnet, settled through the x402 facilitator
+- The AI verification agent makes real LLM calls (via OpenRouter) and real x402 payments
+- The frontend connects real Stellar wallets and signs real Soroban auth entries
+- The platform and agent operate from two separate Stellar wallets with visible on-chain activity
+- Creator earnings are tracked from actual payment settlements
+- The MCP server creates real sponsored accounts on Stellar
 
 ## What Is Not Yet Built
 
-Search and filtering. Recurring access. Refund mechanism. Mainnet deployment.
+- Search and filtering on the catalog
+- Recurring access or time-limited leases (currently per-request)
+- Refund mechanism
+- Rate limiting
+- Mainnet deployment
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | Node.js, TypeScript, Express |
+| Payments | x402 protocol (`@x402/express`, `@x402/stellar`, `@x402/fetch`) |
+| Blockchain | Stellar testnet, USDC via Soroban SAC |
+| Database | Supabase Postgres, Drizzle ORM |
+| Storage | Supabase Storage |
+| AI | OpenRouter (model-flexible, defaults to Claude) |
+| Frontend | React, Vite, Tailwind CSS |
+| Wallets | @creit.tech/stellar-wallets-kit |
+| Agent Access | MCP server with sponsored account provisioning |
+
+## Links
+
+- Live app: [mind-vault-kappa.vercel.app](https://mind-vault-kappa.vercel.app)
+- Backend API: [mindvault-hyr3.onrender.com](https://mindvault-hyr3.onrender.com)
+- x402 protocol: [x402.org](https://www.x402.org/)
+- x402 on Stellar: [developers.stellar.org](https://developers.stellar.org/docs/build/agentic-payments/x402)
+- Sponsored accounts: [stellar-sponsored-agent-account](https://github.com/oceans404/stellar-sponsored-agent-account)
+- Stellar Wallets Kit: [stellarwalletskit.dev](https://stellarwalletskit.dev/)
+- Circle testnet faucet: [faucet.circle.com](https://faucet.circle.com)
 
 ## License
 
