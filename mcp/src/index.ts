@@ -12,12 +12,28 @@ import { ExactStellarScheme } from "@x402/stellar/exact/client";
 import { createEd25519Signer } from "@x402/stellar";
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
+import { Buffer } from "buffer";
 
 const MINDVAULT_API = process.env.MINDVAULT_API || "https://mindvault-hyr3.onrender.com";
-const WALLET_PATH = join(process.env.HOME || ".", ".mindvault-agent-wallet.json");
+const DEFAULT_WALLET_BASENAME = ".mindvault-agent-wallet.json";
+const MINDVAULT_PROFILE = process.env.MINDVAULT_PROFILE?.trim();
+const WALLET_PATH =
+  process.env.MINDVAULT_WALLET_PATH ||
+  join(
+    process.env.HOME || ".",
+    MINDVAULT_PROFILE
+      ? `.mindvault-agent-wallet.${sanitizeProfileName(MINDVAULT_PROFILE)}.json`
+      : DEFAULT_WALLET_BASENAME
+  );
 const SPONSORED_ACCOUNT_API = "https://stellar-sponsored-agent-account.onrender.com";
 const NETWORK = "stellar:testnet";
 const HORIZON_URL = "https://horizon-testnet.stellar.org";
+const STELLAR_EXPLORER = "https://stellar.expert/explorer/testnet/tx";
+
+function sanitizeProfileName(profile: string) {
+  const normalized = profile.toLowerCase().replace(/[^a-z0-9._-]+/g, "-");
+  return normalized.replace(/^-+|-+$/g, "") || "default";
+}
 
 // Wallet management
 interface WalletConfig {
@@ -39,6 +55,22 @@ function loadWallet(): WalletConfig | null {
 
 function saveWallet(config: WalletConfig) {
   writeFileSync(WALLET_PATH, JSON.stringify(config, null, 2), { mode: 0o600 });
+}
+
+function extractTxHash(res: Response): string | null {
+  const header = res.headers.get("PAYMENT-RESPONSE") || res.headers.get("X-PAYMENT-RESPONSE");
+  if (!header) return null;
+  try {
+    const decoded = JSON.parse(Buffer.from(header, "base64").toString());
+    return decoded.transaction || null;
+  } catch {
+    return null;
+  }
+}
+
+function explorerLink(txHash: string | null): string {
+  if (!txHash) return "Transaction hash not available in response.";
+  return `${STELLAR_EXPLORER}/${txHash}`;
 }
 
 // Create paidFetch from a secret key
@@ -183,6 +215,7 @@ server.tool(
               `USDC Balance: ${usdc ? (usdc as any).balance : "0"} USDC`,
               `XLM Balance: ${xlm ? (xlm as any).balance : "0"} XLM`,
               `Created: ${wallet.createdAt}`,
+              `Wallet Path: ${WALLET_PATH}`,
               `MindVault API: ${MINDVAULT_API}`,
             ].join("\n"),
           },
@@ -292,6 +325,8 @@ server.tool(
 
       const contentType = res.headers.get("content-type") || "";
 
+      const txHash = extractTxHash(res);
+
       if (contentType.includes("application/json")) {
         const data = await res.json();
 
@@ -304,6 +339,7 @@ server.tool(
         } else {
           text += `Content: ${JSON.stringify(data, null, 2)}`;
         }
+        text += `\n\nStellar Explorer: ${explorerLink(txHash)}`;
 
         return { content: [{ type: "text" as const, text }] };
       } else {
@@ -312,7 +348,7 @@ server.tool(
           content: [
             {
               type: "text" as const,
-              text: `File downloaded successfully.\nSize: ${blob.size} bytes\nType: ${contentType}\nPayment completed via x402 on Stellar.`,
+              text: `File downloaded successfully.\nSize: ${blob.size} bytes\nType: ${contentType}\nPayment completed via x402 on Stellar.\n\nStellar Explorer: ${explorerLink(txHash)}`,
             },
           ],
         };
@@ -441,6 +477,7 @@ server.tool(
         body: JSON.stringify({ content, resourceId: resource.id }),
       });
 
+      const txHash = extractTxHash(verifyRes);
       let verifyResult = null;
       if (verifyRes.ok) {
         verifyResult = await verifyRes.json();
@@ -464,6 +501,8 @@ server.tool(
               verifyResult?.flags?.length
                 ? `Flags: ${verifyResult.flags.join(", ")}`
                 : "",
+              "",
+              `Stellar Explorer: ${explorerLink(txHash)}`,
             ].filter(Boolean).join("\n"),
           },
         ],

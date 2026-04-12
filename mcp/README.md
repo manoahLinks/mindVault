@@ -45,6 +45,26 @@ By default the server points to the public MindVault API. To use a different ins
 claude mcp add mindvault -e MINDVAULT_API=https://your-server.com node /path/to/mindVault/mcp/dist/index.js
 ```
 
+### Separate wallets per assistant
+
+By default the wallet key is stored locally at `~/.mindvault-agent-wallet.json`, so assistants running under the same user account can end up sharing one wallet.
+
+Use either of these env vars to split state cleanly:
+
+- `MINDVAULT_PROFILE`: stores the wallet at `~/.mindvault-agent-wallet.<profile>.json`
+- `MINDVAULT_WALLET_PATH`: uses an explicit wallet file path
+
+Examples:
+
+```bash
+# Claude uses its own wallet file
+claude mcp add mindvault -e MINDVAULT_PROFILE=claude node /path/to/mindVault/mcp/dist/index.js
+```
+
+For other MCP clients, configure the MindVault server process with `MINDVAULT_PROFILE=codex` (or an explicit `MINDVAULT_WALLET_PATH`) when you register the server.
+
+After switching profiles, run `mindvault_setup_wallet` once in each assistant to create separate sponsored wallets.
+
 ## First use
 
 1. Start a new conversation with your AI assistant
@@ -55,4 +75,4 @@ claude mcp add mindvault -e MINDVAULT_API=https://your-server.com node /path/to/
 
 ## How payments work
 
-When the agent calls `mindvault_buy`, it hits the resource URL and receives an HTTP 402 with payment instructions. The x402 client automatically signs a USDC payment on Stellar and retries the request. The resource is delivered after on-chain settlement. The agent's wallet key is stored locally at `~/.mindvault-agent-wallet.json`.
+When the agent calls `mindvault_buy`, it hits the resource URL and receives an HTTP 402 with payment instructions. The x402 client automatically signs a USDC payment on Stellar and retries the request. The resource is delivered after on-chain settlement. The agent's wallet key is stored locally at `~/.mindvault-agent-wallet.json` by default, or at the profile/path you configure with `MINDVAULT_PROFILE` or `MINDVAULT_WALLET_PATH`.
